@@ -10,6 +10,8 @@ class Bank:
         self.clients = clients
 
     def register_client(self, client):
+        if self.clients == None:
+            self.clients = []
         self.clients.append(client)
 
 
@@ -32,7 +34,7 @@ class Client:
 
     def deposit(self, amount) -> int:
         deposit_condition = amount > 0
-        if withdrawal_condition:
+        if deposit_condition:
             self.account_value -= amount
             self.log(f"Deposited {amount}")
             return self.account_value
@@ -42,6 +44,7 @@ class Client:
 def main():
     bank = Bank("BigMoneyStacksTrust")
     client = Client("Gunnar Gunnarson", 2137)
+    bank.register_client(client)
 
 
 if __name__ == "__main__":
