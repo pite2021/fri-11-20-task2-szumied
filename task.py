@@ -15,14 +15,14 @@ class Bank:
 
 class Client:
     def __init__(self, name: str, account_value: float, action_log=None):
-        self.name = NameError
+        self.name = name
         self.account_value = account_value
         if action_log == None:
             self.action_log = []
 
     def log(self, action) -> str:
         current_time = datetime.now()
-        log_message = f"[{current_time}] {action}"
+        log_message = f"[{current_time}, {self.name}] {action}"
         self.action_log.append(log_message)
         return log_message
 
@@ -45,8 +45,11 @@ class Client:
         if amount < self.account_value:
             self.withdraw(amount)
             target_client.deposit(amount)
-            msg = f"Client {self.name} transfered {amount} to {target_client.name}"
-            self.log(msg)
+            msg = f"Transfered {amount} to {target_client.name}"
+            return (self.account_value, self.log(msg))
+
+        fail_msg = "Transfered amount exceededing acount value"
+        return self.log(fail_msg)
 
 
 def main():
@@ -56,7 +59,8 @@ def main():
     logged = client.withdraw(3)
     print(logged)
     client2 = Client("John Johnson", 2137)
-    client.transfer(client2, 3)
+    msg = client.transfer(client2, 3)
+    print(msg)
 
 
 if __name__ == "__main__":
