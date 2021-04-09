@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import Tuple
 
 
 class Bank:
@@ -8,7 +8,7 @@ class Bank:
         self.clients = clients
 
     def register_client(self, client) -> str:
-        if self.clients == None:
+        if self.clients is None:
             self.clients = []
         self.clients.append(client)
         register_log = f"Client {client.name} registered in {self.name}"
@@ -19,7 +19,7 @@ class Client:
     def __init__(self, name: str, account_value: float, action_log=None):
         self.name = name
         self.account_value = account_value
-        if action_log == None:
+        if action_log is None:
             self.action_log = []
 
     def log(self, action) -> str:
@@ -28,14 +28,16 @@ class Client:
         self.action_log.append(log_message)
         return log_message
 
-    def withdraw(self, amount) -> (int, str):
+    def withdraw(self, amount) -> Tuple[int, str]:
         withdrawal_condition = amount < self.account_value
         if withdrawal_condition:
             self.account_value -= amount
             msg = self.log(f"Withdrew {amount}")
             return (self.account_value, msg)
+        fail_msg = "FAILURE: withdrawal exceeded the account value."
+        return (self.account_value, self.log(fail_msg))
 
-    def deposit(self, amount) -> (int, str):
+    def deposit(self, amount) -> Tuple[int, str]:
         deposit_condition = amount > 0
         if deposit_condition:
             self.account_value -= amount
@@ -44,7 +46,7 @@ class Client:
         msg = self.log("FAILURE: Tried to deposit a negative amount.")
         return (self.account_value, msg)
 
-    def transfer(self, target_client, amount) -> (int, str):
+    def transfer(self, target_client, amount) -> Tuple[int, str]:
         if amount < self.account_value:
             self.withdraw(amount)
             target_client.deposit(amount)
