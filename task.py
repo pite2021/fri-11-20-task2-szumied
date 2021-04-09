@@ -3,7 +3,7 @@ from typing import List
 
 
 class Bank:
-    def __init__(self, name, clients=None):
+    def __init__(self, name: str, clients=None):
         self.name = name
         self.clients = clients
 
@@ -21,8 +21,8 @@ class Client:
             self.action_log = []
 
     def log(self, action) -> str:
-        current_time = datetime.now().time
-        log_message = f"[{current_time} {action}]"
+        current_time = datetime.now()
+        log_message = f"[{current_time}] {action}"
         self.action_log.append(log_message)
         return log_message
 
@@ -41,6 +41,13 @@ class Client:
             return (self.account_value, msg)
         self.log("Tried to deposit a negative amount.")
 
+    def transfer(self, target_client, amount):
+        if amount < self.account_value:
+            self.withdraw(amount)
+            target_client.deposit(amount)
+            msg = f"Client {self.name} transfered {amount} to {target_client.name}"
+            self.log(msg)
+
 
 def main():
     bank = Bank("BigMoneyStacksTrust")
@@ -48,6 +55,8 @@ def main():
     bank.register_client(client)
     logged = client.withdraw(3)
     print(logged)
+    client2 = Client("John Johnson", 2137)
+    client.transfer(client2, 3)
 
 
 if __name__ == "__main__":
