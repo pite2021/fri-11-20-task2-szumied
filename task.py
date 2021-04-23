@@ -1,14 +1,13 @@
-"""Banking simulation"""
-
 from datetime import datetime
 from typing import Tuple
 from typing import List
 import functools
+import logging
+
+logging.basicConfig(format="[%(levelname)s] %(message)s", level=logging.INFO)
 
 
 class Bank:
-    """Bank class for client aggregation"""
-
     def __init__(self, name: str, clients: List[str] = None):
         self.name = name
         self.clients = clients
@@ -26,14 +25,51 @@ class Bank:
         return result
 
 
-class Client:
-    """Client interaction model"""
+class BankActionError(Exception):
+    pass
 
+
+class Client:
     def __init__(self, name: str, account_value: float, action_log=None):
         self.name = name
         self.account_value = account_value
         if action_log is None:
             self.action_log = []
+
+    def protected_account_action(self, condition, failure_msg, success_msg, action, action_params=None):
+        try:
+            if condition:
+                action(action_params)
+                msg = self.log(success_msg)
+                return (self.account_value, msg)
+            raise BankActionError("(EXCEPTION) {}".format(failure_msg))
+        except BankActionError as ex:
+            msg = self.log("{}".format(str(ex)))
+            return (self.account_value, msg)
+
+    def withdraw(self, amount: float) -> Tuple[int, str]:
+        withdrawal_condition = amount < self.account_value
+        fail_msg = "FAILURE: withdrawal exceeded the account value"
+        success_msg = "SUCCEESS: withdrew {}".format(amount)
+        action = lambda account: (
+            setattr(account, "account_value", account.account_value - amount)
+        )
+        result = self.protected_account_action(
+            withdrawal_condition, fail_msg, success_msg, action, action_params=self
+        )
+        return result
+
+    def deposit(self, amount: float) -> Tuple[int, str]:
+        deposit_condition = amount > 0
+        fail_msg = "FAILURE: deposit value too low."
+        success_msg = "SUCCEESS: Deposited {}".format(amount)
+        action = lambda account: (
+            setattr(account, "account_value", account.account_value + amount)
+        )
+        result = self.protected_account_action(
+            deposit_condition, fail_msg, success_msg, action, action_params=self
+        )
+        return result
 
     def log(self, action: str) -> str:
         current_time = datetime.now()
@@ -41,33 +77,19 @@ class Client:
         self.action_log.append(log_message)
         return log_message
 
-    def withdraw(self, amount: float) -> Tuple[int, str]:
-        withdrawal_condition = amount < self.account_value
-        if withdrawal_condition:
-            self.account_value -= amount
-            msg = self.log(f"Withdrew {amount}")
-            return (self.account_value, msg)
-        fail_msg = "FAILURE: withdrawal exceeded the account value."
-        return (self.account_value, self.log(fail_msg))
-
-    def deposit(self, amount: float) -> Tuple[int, str]:
-        deposit_condition = amount > 0
-        if deposit_condition:
-            self.account_value -= amount
-            msg = self.log(f"Deposited {amount}")
-            return (self.account_value, msg)
-        msg = self.log("FAILURE: Tried to deposit a negative amount.")
-        return (self.account_value, msg)
-
     def transfer(self, target_client, amount: float) -> Tuple[int, str]:
-        if amount < self.account_value:
-            self.withdraw(amount)
-            target_client.deposit(amount)
-            msg = f"Transfered {amount} to {target_client.name}"
-            return (self.account_value, self.log(msg))
+        transfer_condition = amount < self.account_value
+        fail_msg = "FAILURE: Transfered amount exceededing account value"
+        success_msg = "SUCCEESS: Transfered {} to {}".format(amount, target_client.name)
 
-        fail_msg = "Transfered amount exceededing acount value"
-        return (self.account_value, self.log(fail_msg))
+        def action_body(params):
+            params["self"].withdraw(params["amount"])
+            params["target"].deposit(params["amount"])
+        params = {"self": self, "target": target_client, "amount": amount}
+        result = self.protected_account_action(
+            transfer_condition, fail_msg, success_msg, action_body, action_params=params
+        )
+        return result
 
 
 def main():
@@ -75,12 +97,14 @@ def main():
     client = Client("Gunnar Gunnarson", 2137)
     bank.register_client(client)
     client.withdraw(3)
-    client2 = Client("John Johnson", 2137)
+    client2 = Client("John Johnson", 2132)
     bank.register_client(client2)
     client.transfer(client2, 3)
-    [print(action) for action in client.action_log]
+    client.withdraw(233333)
+    client.transfer(client2, 324134134)
+    [logging.info(action) for action in client.action_log]
     total = bank.total_acounts_value()
-    print("Summed accounts' value: {}".format(total))
+    logging.info("Summed accounts' value: {}".format(total))
 
 
 if __name__ == "__main__":
